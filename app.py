@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from io import BytesIO
+from html import escape
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -16,28 +17,197 @@ DATASET_PATH = APP_ROOT / "data" / "test_data.csv"
 
 EXAMPLES = {
     "พิมพ์ข้อความเอง": "",
-    "1. Network": (
+    "1. Network Down": (
         "เน็ตห้อง Lab 402 ใช้งานไม่ได้ตั้งแต่ 09:30 น. "
         "Cisco Router IP 192.168.1.1 ping ไม่เจอ ด่วนมากครับ ติดต่อ 081-234-5678"
     ),
-    "2. Wi-Fi": "Wi-Fi ห้องประชุมชั้น 2 ช้ามากกกกกก และหลุดบ่อย",
-    "3. DNS": "เปิด portal.example.com ไม่ได้ แต่ ping 8.8.8.8 ได้ น่าจะเป็นปัญหา DNS",
-    "4. DHCP": "เครื่อง PC ไม่ได้รับ IP address จาก DHCP ที่ Building A",
-    "5. English": "Production network is down for all users; Juniper Firewall is unreachable.",
-    "6. Authentication": "Login เข้า VPN account ไม่ได้ รบกวนตรวจสอบ password ด่วน",
-    "7. Application": "เว็บระบบลงทะเบียนขึ้น 500 error ที่ Room 210",
+    "2. Wi-Fi Issue": "Wi-Fi ห้องประชุมชั้น 2 ช้ามากกกกกก และหลุดบ่อย",
+    "3. DNS Issue": "เปิด portal.example.com ไม่ได้ และค้นหา domain ช้ามาก น่าจะเป็นปัญหา DNS",
+    "4. DHCP Issue": "เครื่อง PC ไม่ได้รับ IP address จาก DHCP ที่ Building A",
+    "5. Authentication Issue": "Login เข้า VPN account ไม่ได้ รบกวนตรวจสอบ password ด่วน",
+    "6. English Example": "Production network is down for all users; Juniper Firewall is unreachable.",
+    "7. Application Issue": "เว็บระบบลงทะเบียนขึ้น 500 error ที่ Room 210",
+}
+
+PRIORITY_STYLE = {
+    "CRITICAL": ("🔴", "critical"),
+    "HIGH": ("🟠", "high"),
+    "MEDIUM": ("🟡", "medium"),
+    "LOW": ("🟢", "low"),
 }
 
 
-def _entity_table(entities: list[dict]) -> pd.DataFrame:
+st.set_page_config(
+    page_title="Network & IT Support Ticket Analyzer",
+    page_icon="🛠️",
+    layout="wide",
+)
+
+st.markdown(
+    """
+    <style>
+        .block-container {
+            max-width: 1180px;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .hero {
+            background: linear-gradient(135deg, #10243f 0%, #173d61 100%);
+            border: 1px solid #28577e;
+            border-radius: 18px;
+            padding: 1.6rem 1.8rem 1.45rem;
+            color: #f4f8fc;
+            margin-bottom: 1.25rem;
+        }
+        .hero-kicker {
+            color: #8bd3ff;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 0.45rem;
+        }
+        .hero h1 {
+            color: #ffffff;
+            font-size: clamp(1.8rem, 4vw, 2.65rem);
+            line-height: 1.12;
+            margin: 0 0 0.55rem;
+        }
+        .hero p {
+            color: #d6e6f3;
+            font-size: 1rem;
+            margin: 0;
+        }
+        .chip-row { margin-top: 1.05rem; }
+        .chip {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 999px;
+            color: #e6f4ff;
+            display: inline-block;
+            font-size: 0.78rem;
+            margin: 0.18rem 0.28rem 0 0;
+            padding: 0.3rem 0.65rem;
+        }
+        .summary-card {
+            background: #ffffff;
+            border: 1px solid #dce6ef;
+            border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(20, 49, 78, 0.06);
+            min-height: 106px;
+            padding: 0.95rem 1rem;
+        }
+        .summary-label {
+            color: #64748b;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .summary-value {
+            color: #10243f;
+            font-size: 1.22rem;
+            font-weight: 750;
+            line-height: 1.3;
+            margin-top: 0.55rem;
+            word-break: break-word;
+        }
+        .priority-value.critical { color: #b42318; }
+        .priority-value.high { color: #b54708; }
+        .priority-value.medium { color: #9a6700; }
+        .priority-value.low { color: #087443; }
+        .token-pill, .evidence-pill {
+            background: #eef6fb;
+            border: 1px solid #cfe3f0;
+            border-radius: 999px;
+            color: #174a6b;
+            display: inline-block;
+            font-size: 0.84rem;
+            margin: 0.18rem 0.22rem 0.18rem 0;
+            padding: 0.25rem 0.58rem;
+        }
+        .evidence-pill { background: #f1f5ff; border-color: #d7def5; color: #3d4d83; }
+        .section-note { color: #64748b; font-size: 0.9rem; }
+        .pipeline {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            margin: 0.7rem 0 1.2rem;
+        }
+        .pipeline-step {
+            background: #f5f8fb;
+            border: 1px solid #dce6ef;
+            border-radius: 10px;
+            color: #24445d;
+            font-size: 0.86rem;
+            padding: 0.48rem 0.65rem;
+        }
+        .pipeline-arrow { color: #8ba1b4; font-weight: 700; }
+        .footer {
+            border-top: 1px solid #e2e8f0;
+            color: #8292a3;
+            font-size: 0.78rem;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            text-align: center;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    <div class="hero">
+        <div class="hero-kicker">Natural Language Processing Project</div>
+        <h1>🛠️ Network &amp; IT Support<br>Ticket Analyzer</h1>
+        <p>วิเคราะห์ข้อความแจ้งปัญหา IT/Network ภาษาไทย ภาษาอังกฤษ และข้อความผสม<br>
+        พร้อมแสดงเหตุผลของ Topic, Priority และ Named Entities อย่างเข้าใจง่าย</p>
+        <div class="chip-row">
+            <span class="chip">Regex</span>
+            <span class="chip">Tokenization</span>
+            <span class="chip">Normalization</span>
+            <span class="chip">Topic Classification</span>
+            <span class="chip">Rule-based NER</span>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+def _entity_table(entities: list[dict[str, Any]]) -> pd.DataFrame:
     return pd.DataFrame(
-        [{"Entity": entity["text"], "Label": entity["label"]} for entity in entities],
-        columns=["Entity", "Label"],
+        [{"Entity": entity["text"], "Type": entity["label"]} for entity in entities],
+        columns=["Entity", "Type"],
+    )
+
+
+def _summary_card(label: str, value: str, extra_class: str = "") -> str:
+    return (
+        '<div class="summary-card">'
+        f'<div class="summary-label">{escape(label)}</div>'
+        f'<div class="summary-value {extra_class}">{escape(value)}</div>'
+        "</div>"
+    )
+
+
+def _priority_text(priority: str) -> str:
+    icon, _ = PRIORITY_STYLE.get(priority, ("•", "low"))
+    return f"{icon} {priority}"
+
+
+def _pills(values: list[str], css_class: str = "token-pill") -> str:
+    if not values:
+        return '<span class="section-note">ไม่พบข้อมูล</span>'
+    return " ".join(
+        f'<span class="{css_class}">{escape(str(value))}</span>' for value in values
     )
 
 
 def _analyze_dataset(frame: pd.DataFrame) -> pd.DataFrame:
-    rows: list[dict] = []
+    rows: list[dict[str, Any]] = []
     for _, row in frame.iterrows():
         item = row.to_dict()
         raw_text = item.get("text", "")
@@ -70,29 +240,46 @@ def _accuracy(frame: pd.DataFrame, expected_column: str, predicted_column: str) 
     return float((expected == predicted).mean())
 
 
-def _load_csv(uploaded_file: BytesIO | None) -> pd.DataFrame | None:
+def _load_csv(uploaded_file: Any | None) -> pd.DataFrame | None:
     try:
         if uploaded_file is None:
             return pd.read_csv(DATASET_PATH)
         return pd.read_csv(uploaded_file)
-    except (OSError, UnicodeDecodeError, pd.errors.ParserError, pd.errors.EmptyDataError) as exc:
+    except (
+        OSError,
+        UnicodeDecodeError,
+        pd.errors.ParserError,
+        pd.errors.EmptyDataError,
+        ValueError,
+    ) as exc:
         st.error(f"อ่านไฟล์ CSV ไม่สำเร็จ: {exc}")
         return None
 
 
 def render_analysis_tab() -> None:
-    st.subheader("วิเคราะห์ข้อความแจ้งปัญหา")
-    selected = st.selectbox("เลือกตัวอย่างข้อความ", list(EXAMPLES))
-    default_text = EXAMPLES[selected]
-    text = st.text_area(
-        "ข้อความภาษาไทย ภาษาอังกฤษ หรือข้อความผสม",
-        value=default_text,
-        height=150,
-        placeholder="เช่น Wi-Fi ห้อง 401 ใช้งานไม่ได้ ติดต่อ admin@example.com",
+    st.header("วิเคราะห์ข้อความแจ้งปัญหา")
+    st.markdown(
+        '<p class="section-note">รองรับข้อความภาษาไทย ภาษาอังกฤษ และข้อความแบบผสมจากงาน IT Support</p>',
+        unsafe_allow_html=True,
     )
 
-    if not st.button("วิเคราะห์ข้อความ", type="primary"):
-        st.info("เลือกตัวอย่างหรือพิมพ์ข้อความ แล้วกดปุ่มวิเคราะห์")
+    with st.container(border=True):
+        selected = st.selectbox("ตัวอย่างข้อความ", list(EXAMPLES), label_visibility="visible")
+        text = st.text_area(
+            "ข้อความแจ้งปัญหา",
+            value=EXAMPLES[selected],
+            height=150,
+            placeholder="เช่น Wi-Fi ห้อง 401 ใช้งานไม่ได้ ติดต่อ admin@example.com",
+            help="เลือกตัวอย่างด้านบนหรือพิมพ์ ticket ของคุณเอง",
+        )
+        analyze_clicked = st.button(
+            "🔎 วิเคราะห์ข้อความ",
+            type="primary",
+            use_container_width=True,
+        )
+
+    if not analyze_clicked:
+        st.info("เลือกตัวอย่างหรือพิมพ์ข้อความ แล้วกดปุ่มวิเคราะห์เพื่อดูผลลัพธ์")
         return
 
     try:
@@ -102,49 +289,89 @@ def render_analysis_tab() -> None:
         return
 
     st.divider()
-    metric_one, metric_two, metric_three = st.columns(3)
-    metric_one.metric("ภาษา", result["language"])
-    metric_two.metric("หัวข้อ", result["topic"])
-    metric_three.metric("ความเร่งด่วน", result["priority"])
+    st.header("ผลการวิเคราะห์")
+    priority_icon, priority_class = PRIORITY_STYLE.get(result["priority"], ("•", "low"))
+    summary_columns = st.columns(4)
+    with summary_columns[0]:
+        st.markdown(_summary_card("Topic", result["topic"]), unsafe_allow_html=True)
+    with summary_columns[1]:
+        st.markdown(
+            _summary_card("Priority", f"{priority_icon} {result['priority']}", f"priority-value {priority_class}"),
+            unsafe_allow_html=True,
+        )
+    with summary_columns[2]:
+        st.markdown(_summary_card("Language", result["language"]), unsafe_allow_html=True)
+    with summary_columns[3]:
+        st.markdown(_summary_card("Entities Found", str(len(result["entities"]))), unsafe_allow_html=True)
 
-    st.markdown("#### Named Entities (Rule-based NER)")
+    st.subheader("ข้อมูลที่ตรวจพบ")
     entities = _entity_table(result["entities"])
     if entities.empty:
         st.caption("ไม่พบ Entity ตามกฎที่กำหนด")
     else:
         st.dataframe(entities, use_container_width=True, hide_index=True)
 
-    left, right = st.columns(2)
-    with left:
-        st.markdown("#### ข้อความหลัง Cleansing")
+    st.subheader("เปรียบเทียบข้อความ")
+    original_column, cleaned_column = st.columns(2)
+    with original_column:
+        st.markdown("**Original Text**")
+        st.code(result["original_text"], language=None)
+    with cleaned_column:
+        st.markdown("**Cleaned Text**")
         st.code(result["cleaned_text"], language=None)
-        st.markdown("#### Filtered Tokens")
-        st.write(" · ".join(result["filtered_tokens"]) or "ไม่พบ token")
-    with right:
-        st.markdown("#### ข้อความหลัง Normalization")
-        st.code(result["normalized_text"], language=None)
-        st.markdown("#### Topic Keyword Evidence")
-        st.write(", ".join(result["topic_keywords"]) or "ไม่พบ keyword")
-        st.markdown("#### Priority Keyword Evidence")
-        st.write(", ".join(result["priority_keywords"]) or "ไม่พบ keyword (จึงเป็น LOW)")
 
-    st.markdown("#### Topic Scores")
-    st.bar_chart(pd.Series(result["topic_scores"], name="score"))
+    with st.expander("ดูรายละเอียดการประมวลผล NLP", expanded=True):
+        normalized_column, token_column = st.columns(2)
+        with normalized_column:
+            st.markdown("#### Normalization")
+            st.code(result["normalized_text"], language=None)
+            st.caption("Unicode NFC, รวมช่องว่าง และลดตัวอักษร/เครื่องหมายซ้ำ")
+        with token_column:
+            st.markdown("#### Filtered Tokens")
+            st.markdown(_pills(result["filtered_tokens"]), unsafe_allow_html=True)
+            st.caption(f"เหลือ {len(result['filtered_tokens'])} tokens หลังตัด stopwords")
+
+        st.markdown("#### Topic Evidence")
+        st.markdown(
+            f"**Predicted Topic:** `{escape(result['topic'])}`  \n**Matched keywords:** "
+            + _pills(result["topic_keywords"], "evidence-pill"),
+            unsafe_allow_html=True,
+        )
+        st.bar_chart(pd.Series(result["topic_scores"], name="score"), height=260)
+
+        priority_keywords = result["priority_keywords"]
+        st.markdown("#### Priority Evidence")
+        st.markdown(
+            f"**Priority:** `{escape(_priority_text(result['priority']))}`  \n**Matched keywords:** "
+            + _pills(priority_keywords, "evidence-pill"),
+            unsafe_allow_html=True,
+        )
+
+        with st.expander("ดู Raw Tokens เพิ่มเติม"):
+            st.write(result["raw_tokens"])
 
 
 def render_dataset_tab() -> None:
-    st.subheader("ทดสอบด้วย Dataset")
-    source = st.radio("แหล่งข้อมูล", ["Bundled data/test_data.csv", "Upload CSV"], horizontal=True)
-    uploaded = st.file_uploader("อัปโหลด CSV ที่มีคอลัมน์ text", type="csv") if source == "Upload CSV" else None
+    st.header("📁 Dataset Testing")
+    st.markdown(
+        '<p class="section-note">รัน NLP pipeline กับ dataset ที่ bundled หรือ CSV ของคุณเอง แล้วตรวจสอบ accuracy</p>',
+        unsafe_allow_html=True,
+    )
+    source = st.radio(
+        "แหล่งข้อมูล",
+        ["ใช้ bundled test dataset", "Upload CSV"],
+        horizontal=True,
+    )
+    uploaded = (
+        st.file_uploader("อัปโหลด CSV ที่มีคอลัมน์ text", type="csv")
+        if source == "Upload CSV"
+        else None
+    )
 
-    if uploaded is not None:
-        frame = _load_csv(uploaded)
-    elif source == "Bundled data/test_data.csv":
-        frame = _load_csv(None)
-    else:
+    if source == "Upload CSV" and uploaded is None:
         st.info("เลือกไฟล์ CSV เพื่อเริ่มทดสอบ")
         return
-
+    frame = _load_csv(uploaded if source == "Upload CSV" else None)
     if frame is None:
         return
     if "text" not in frame.columns:
@@ -154,12 +381,33 @@ def render_dataset_tab() -> None:
     result_frame = _analyze_dataset(frame)
     topic_accuracy = _accuracy(result_frame, "expected_topic", "predicted_topic")
     priority_accuracy = _accuracy(result_frame, "expected_priority", "predicted_priority")
-    metric_one, metric_two, metric_three = st.columns(3)
-    metric_one.metric("จำนวนข้อความ", len(result_frame))
-    metric_two.metric("Topic Accuracy", "N/A" if topic_accuracy is None else f"{topic_accuracy:.1%}")
-    metric_three.metric(
-        "Priority Accuracy", "N/A" if priority_accuracy is None else f"{priority_accuracy:.1%}"
+    metrics = st.columns(3)
+    metrics[0].metric("Messages", len(result_frame))
+    metrics[1].metric("Topic Accuracy", "N/A" if topic_accuracy is None else f"{topic_accuracy:.1%}")
+    metrics[2].metric(
+        "Priority Accuracy",
+        "N/A" if priority_accuracy is None else f"{priority_accuracy:.1%}",
     )
+
+    has_expected_labels = "expected_topic" in result_frame.columns or "expected_priority" in result_frame.columns
+    show_errors = st.checkbox(
+        "แสดงเฉพาะรายการที่ทำนายผิด",
+        disabled=not has_expected_labels,
+        help="ใช้ได้เมื่อ CSV มี expected_topic หรือ expected_priority",
+    )
+    visible_frame = result_frame
+    if show_errors:
+        mismatch = pd.Series(False, index=result_frame.index)
+        if "expected_topic" in result_frame.columns:
+            mismatch |= result_frame["expected_topic"].astype(str).str.casefold() != result_frame[
+                "predicted_topic"
+            ].astype(str).str.casefold()
+        if "expected_priority" in result_frame.columns:
+            mismatch |= result_frame["expected_priority"].astype(str).str.casefold() != result_frame[
+                "predicted_priority"
+            ].astype(str).str.casefold()
+        visible_frame = result_frame[mismatch]
+        st.caption(f"พบรายการที่ทำนายผิด {len(visible_frame)} รายการ")
 
     display_columns = [
         column
@@ -173,9 +421,9 @@ def render_dataset_tab() -> None:
             "language",
             "extracted_entities",
         )
-        if column in result_frame.columns
+        if column in visible_frame.columns
     ]
-    st.dataframe(result_frame[display_columns], use_container_width=True, hide_index=True)
+    st.dataframe(visible_frame[display_columns], use_container_width=True, hide_index=True)
     csv_bytes = result_frame.to_csv(index=False).encode("utf-8-sig")
     st.download_button(
         "ดาวน์โหลดผลการวิเคราะห์ CSV",
@@ -186,32 +434,59 @@ def render_dataset_tab() -> None:
 
 
 def render_explanation_tab() -> None:
-    st.subheader("NLP ที่ใช้ในโครงงาน")
+    st.header("🧠 NLP ที่ใช้ในโครงงาน")
+    st.markdown(
+        '<p class="section-note">ทำความเข้าใจ pipeline ได้ภายในหนึ่งนาที และเปิดดูรายละเอียดเพิ่มเติมได้ในแต่ละหัวข้อ</p>',
+        unsafe_allow_html=True,
+    )
     st.markdown(
         """
-        โครงงานนี้เป็นระบบ **Rule-based NLP** ที่ออกแบบให้ตรวจสอบเหตุผลได้ง่าย
-        และไม่ต้องใช้ API, GPU หรือโมเดลขนาดใหญ่
-
-        1. **Regex & Cleansing** — ตรวจหา IPv4 ที่แต่ละ octet อยู่ในช่วง 0–255,
-           เบอร์โทร, email, URL, เวลา และวันที่ แล้ว mask เฉพาะ PHONE, EMAIL และ URL
-           โดยเก็บ IP ไว้เพราะเป็นข้อมูลสำคัญสำหรับ Network Support
-        2. **Normalization** — ทำ Unicode NFC, รวมช่องว่าง, ลดการลากตัวอักษรและเครื่องหมายซ้ำ
-           โดยปกป้อง IP, URL และ email ไม่ให้ถูกแก้ไข
-        3. **Tokenization** — ข้อความ Thai/mixed ใช้
-           `pythainlp.tokenize.word_tokenize(..., engine="newmm")` ส่วน English ใช้ regex tokenizer
-        4. **Stopword Removal** — ใช้ Thai stopwords จาก PyThaiNLP และชุด English stopwords ขนาดเล็ก
-        5. **Topic Identification** — นับ keyword แบบมีน้ำหนักเพื่อเลือก Network Connectivity,
-           Wi-Fi, DNS, DHCP, Authentication, Hardware, Application หรือ Other พร้อมแสดง evidence
-        6. **Rule-based NER** — ดึง IP_ADDRESS, PHONE, EMAIL, URL, TIME, DATE, VENDOR,
-           DEVICE และ LOCATION ด้วย regex และ domain dictionaries
-        7. **Priority Detection** — เลือกระดับ CRITICAL, HIGH, MEDIUM หรือ LOW จากคำเร่งด่วนที่พบ
-        """
+        <div class="pipeline">
+            <span class="pipeline-step">Input</span><span class="pipeline-arrow">→</span>
+            <span class="pipeline-step">Cleansing</span><span class="pipeline-arrow">→</span>
+            <span class="pipeline-step">Normalization</span><span class="pipeline-arrow">→</span>
+            <span class="pipeline-step">Tokenization</span><span class="pipeline-arrow">→</span>
+            <span class="pipeline-step">Topic</span><span class="pipeline-arrow">→</span>
+            <span class="pipeline-step">NER</span><span class="pipeline-arrow">→</span>
+            <span class="pipeline-step">Priority</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
+    explanation_columns = st.columns(2)
+    explanations = [
+        (
+            "Regex & Cleansing",
+            "ตรวจ IPv4 ที่มี octet อยู่ในช่วง 0–255, phone, email, URL, time และ date "
+            "จากนั้น mask PHONE, EMAIL และ URL โดยเก็บ IP ไว้เพื่อการวิเคราะห์ Network",
+        ),
+        (
+            "Tokenization",
+            'Thai/mixed ใช้ PyThaiNLP `word_tokenize(text, engine="newmm", keep_whitespace=False)` ส่วน English ใช้ regex tokenizer',
+        ),
+        (
+            "Normalization",
+            "ใช้ Unicode NFC, รวม whitespace และลดการลากตัวอักษร/เครื่องหมายซ้ำ โดยปกป้อง technical strings",
+        ),
+        (
+            "Topic Identification",
+            "ใช้ domain keyword scoring เพื่อจำแนก Network Connectivity, Wi-Fi, DNS, DHCP, Authentication, Hardware, Application และ Other",
+        ),
+        (
+            "Rule-based NER",
+            "ดึง Vendor, Device, IP, Phone, Email, URL, Location, Time และ Date จาก regex และ domain dictionaries",
+        ),
+        (
+            "Priority Detection",
+            "ตรวจ evidence ตามระดับ CRITICAL, HIGH, MEDIUM และ LOW ด้วยกฎที่ deterministic และอธิบายได้",
+        ),
+    ]
+    for index, (title, description) in enumerate(explanations):
+        with explanation_columns[index % 2].container(border=True):
+            st.markdown(f"#### {title}")
+            st.write(description)
 
-st.set_page_config(page_title="Network & IT Support Ticket Analyzer", page_icon="🛠️", layout="wide")
-st.title("Network & IT Support Ticket Analyzer")
-st.caption("เว็บแอป NLP สำหรับวิเคราะห์ข้อความแจ้งปัญหา IT/Network ภาษาไทย ภาษาอังกฤษ และข้อความผสม")
 
 tab_analyze, tab_dataset, tab_explain = st.tabs(
     ["🔎 วิเคราะห์ข้อความ", "📁 ทดสอบ Dataset", "🧠 NLP ที่ใช้"]
@@ -222,3 +497,12 @@ with tab_dataset:
     render_dataset_tab()
 with tab_explain:
     render_explanation_tab()
+
+st.markdown(
+    """
+    <div class="footer">
+        Network &amp; IT Support Ticket Analyzer · Natural Language Processing Project
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
