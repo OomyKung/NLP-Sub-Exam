@@ -1,0 +1,8 @@
+﻿text,expected_topic,expected_priority
+เน็ตห้อง 402 ใช้งานไม่ได้ตั้งแต่ 09:30 น. Router Cisco ที่ IP 192.168.1.1 ping ไม่เจอ ติดต่อผมที่ 081-234-5678 ด่วนมากครับ,Network Connectivity,High
+Wi-Fi ห้องประชุมชั้น 2 ช้ามากกกกกก รบกวนตรวจสอบให้ทีค่ะ,Wi-Fi,Medium
+เครื่อง PC แผนกบัญชีไม่ได้ IP address จากระบบ DHCP ครับ,DHCP,High
+เข้าเว็บ google.com ไม่ได้ แต่เข้าด้วย IP ได้ น่าจะเป็นปัญหา DNS,DNS,Medium
+Switch ชั้น 3 มีไฟสีส้มกระพริบ ตรวจสอบด่วน ติดต่อ 02-123-4567,Hardware,High
+Username: admin เข้าใช้งานระบบ VPN ไม่ได้ครับ,Authentication,Medium
+"Internet down at building A, please check urgently!",Network Connectivity,High
