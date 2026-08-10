@@ -1,0 +1,51 @@
+id,text,expected_topic,expected_priority
+1,"เน็ตห้อง Lab 402 ใช้งานไม่ได้ตั้งแต่ 09:30 น. Cisco Router IP 192.168.1.1 ping ไม่เจอ ด่วนมากครับ ติดต่อ 081-234-5678",Network Connectivity,HIGH
+2,"Internet ทั้งอาคาร A ล่ม กระทบผู้ใช้ทั้งหมด และ production down ตั้งแต่เช้า",Network Connectivity,CRITICAL
+3,"Internet is down at Building A and every user is affected. Please investigate urgently.",Network Connectivity,CRITICAL
+4,"เครือข่ายมี packet loss เป็นช่วง ๆ ทำให้การเชื่อมต่อไม่เสถียรที่ Floor 4",Network Connectivity,MEDIUM
+5,"ขอให้ตรวจสอบเส้นทาง network ระหว่างห้อง 201 กับ Gateway 10.0.0.1",Network Connectivity,LOW
+6,"Server ที่ Room 210 unreachable จากเครือข่ายสำนักงาน รบกวนแก้ไขด่วน",Network Connectivity,HIGH
+7,"เน็ตชั้น 5 down ชั่วคราว ผู้ใช้เข้าใช้งานไม่ได้",Network Connectivity,HIGH
+8,"Network connection หลุดบ่อยช่วงบ่ายและมี packet loss",Network Connectivity,MEDIUM
+9,"Wi-Fi ห้องประชุมชั้น 2 ช้ามากและหลุดบ่อย",Wi-Fi,MEDIUM
+10,"Wi-Fi ห้อง 401 ใช้งานไม่ได้ตั้งแต่ 10:00 น. ขอความช่วยเหลือด่วน",Wi-Fi,HIGH
+11,"The wireless signal in Room 305 is weak near the printer.",Wi-Fi,LOW
+12,"สัญญาณไร้สายที่ Building B intermittent และไม่เสถียร",Wi-Fi,MEDIUM
+13,"Wi-Fi หอพัก down ทุกจุด access point ขอทีมเข้าตรวจสอบ urgent",Wi-Fi,HIGH
+14,"Ubiquiti AP ให้บริการสัญญาณไร้สายบริเวณ Floor 3",Wi-Fi,LOW
+15,"เปิด portal.example.com ไม่ได้ และค้นหา domain ช้ามาก น่าจะเป็นปัญหา DNS",DNS,MEDIUM
+16,"DNS server ใช้งานไม่ได้ ทำให้เปิดเว็บไซต์ไม่ได้ทั้งแผนก ด่วน",DNS,HIGH
+17,"ลองใช้ nslookup กับ domain example.org แล้วได้ผลลัพธ์ปกติ",DNS,LOW
+18,"DNS resolve ชื่อโดเมนไม่สำเร็จที่ Room 402 ขอให้แก้ไขด่วน",DNS,HIGH
+19,"การค้นหา domain ช้ามากในช่วงเช้า",DNS,MEDIUM
+20,"กรุณาตรวจสอบการตั้งค่า DNS ของเครื่อง Client ที่ Building C",DNS,LOW
+21,"เครื่อง PC แผนกบัญชีไม่ได้รับ IP address จากระบบ DHCP ครับ ขอให้ตรวจสอบด่วน",DHCP,HIGH
+22,"DHCP lease ของ Laptop ที่ Room 101 หมดอายุ ขอให้ตรวจสอบ",DHCP,LOW
+23,"Client cannot receive an IP address from DHCP and is unreachable.",DHCP,HIGH
+24,"DHCP แจก IP intermittent ทำให้บางเครื่องหลุดเป็นระยะ",DHCP,MEDIUM
+25,"DHCP Server ที่ Building A มี lease เหลือน้อยมาก",DHCP,LOW
+26,"ระบบแจก IP จาก DHCP ไม่ได้ ผู้ใช้งานเข้า network ไม่ได้ ด่วน",DHCP,HIGH
+27,"Login เข้า VPN account ไม่ได้ รบกวนตรวจสอบ password ด่วน",Authentication,HIGH
+28,"VPN login ช้ามากเมื่อใช้จาก Room 204",Authentication,MEDIUM
+29,"บัญชี user ถูก lock หลังใส่รหัสผ่านผิดหลายครั้ง",Authentication,LOW
+30,"Authentication failed ตอนเข้าสู่ระบบ portal กรุณาช่วยแก้ไข",Authentication,LOW
+31,"Username admin เข้าใช้งานระบบไม่ได้ ขอให้ตรวจสอบสิทธิ์ด่วน",Authentication,HIGH
+32,"The user cannot log in to the Cisco VPN; this is urgent.",Authentication,HIGH
+33,"Switch ห้อง Lab 3 มีไฟสีส้มกระพริบ ตรวจสอบด่วน ติดต่อ 02-123-4567",Hardware,HIGH
+34,"Cisco Router ที่ Building A ต้องการตรวจสอบ firmware และพอร์ต",Hardware,LOW
+35,"Dell Server at Floor 4 is unstable and restarts intermittently.",Hardware,MEDIUM
+36,"Fortinet Firewall unreachable ที่ห้อง Server ขอทีมตรวจสอบด่วน",Hardware,HIGH
+37,"Modem ที่ Room 110 เปิดไม่ติด กรุณาเตรียมอุปกรณ์สำรอง",Hardware,LOW
+38,"Core Switch down ทั้งระบบเครือข่ายของอาคาร B",Hardware,CRITICAL
+39,"เว็บไซต์ระบบลงทะเบียนขึ้น 500 error และใช้งานไม่ได้ที่ Room 210",Application,HIGH
+40,"The student portal application is very slow during registration.",Application,MEDIUM
+41,"กรุณาตรวจสอบหน้าเว็บ portal สำหรับเจ้าหน้าที่ที่ Building C",Application,LOW
+42,"ระบบงานล่ม ทำให้เจ้าหน้าที่ทุกคนเปิด application ไม่ได้",Application,HIGH
+43,"โปรแกรมบัญชีมีอาการ intermittent และกระตุกในช่วงบ่าย",Application,MEDIUM
+44,"HPE application server แสดง error code 500 ที่ Floor 2",Application,LOW
+45,"ขอคำแนะนำการจัดหมวดหมู่ ticket สำหรับทีม Help Desk",Other,LOW
+46,"ขอคำแนะนำการเปิด ticket ใหม่สำหรับทีม Help Desk",Other,LOW
+47,"ผู้แจ้งชื่อ Somchai ติดต่อ admin@example.com เพื่อขอข้อมูลเพิ่มเติม",Other,LOW
+48,"นัดหมายตรวจสอบระบบวันที่ 10/08/2026 เวลา 14:30 ที่อาคาร A",Other,LOW
+49,"MikroTik และ Juniper เป็นรายชื่อ vendor ที่ใช้ในโครงการนี้",Other,LOW
+50,"เอกสารการสนับสนุนงานฉบับนี้ต้องการผู้ตรวจทานก่อนส่งอาจารย์",Other,LOW
